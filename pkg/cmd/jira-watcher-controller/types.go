@@ -326,6 +326,8 @@ func getCustomField(name string, value interface{}) *CustomField {
 	switch v := value.(type) {
 	case string:
 		field.Value = v
+	case int:
+		field.Value = fmt.Sprintf("%d", v)
 	default:
 		bytes, err := json.Marshal(value)
 		if err != nil {
@@ -351,7 +353,7 @@ func generateBigQueryJson(src interface{}) string {
 
 func getReleaseBlocker(i jiraBaseClient.Issue) ReleaseBlocker {
 	rb, err := helpers.GetReleaseBlocker(&i)
-	if err != nil {
+	if err != nil || rb == nil {
 		return ReleaseBlocker{}
 	}
 	return ReleaseBlocker{
