@@ -68,24 +68,30 @@ type CustomField struct {
 	StructuredValue string  `bigquery:"structured_value" json:"structured_value,omitempty"`
 }
 
+type ReleaseBlocker struct {
+	ID    string `bigquery:"id"`
+	Value string `bigquery:"value"`
+}
+
 type Ticket struct {
-	RecordCreated   time.Time     `bigquery:"record_created"`
-	Issue           Issue         `bigquery:"issue"`
-	Description     string        `bigquery:"description"`
-	Creator         string        `bigquery:"creator"`
-	Assignee        string        `bigquery:"assignee"`
-	Status          Status        `bigquery:"status"`
-	Priority        Priority      `bigquery:"priority"`
-	Labels          []string      `bigquery:"labels"`
-	TargetVersions  []Version     `bigquery:"target_versions"`
-	Resolution      Resolution    `bigquery:"resolution"`
-	Comments        []Comment     `bigquery:"comments"`
-	Summary         string        `bigquery:"summary"`
-	Components      []Component   `bigquery:"components"`
-	FixVersions     []Version     `bigquery:"fix_versions"`
-	AffectsVersions []Version     `bigquery:"affects_versions"`
-	LastChangedTime time.Time     `bigquery:"last_changed_time"`
-	CustomFields    []CustomField `bigquery:"custom_fields"`
+	RecordCreated   time.Time      `bigquery:"record_created"`
+	Issue           Issue          `bigquery:"issue"`
+	Description     string         `bigquery:"description"`
+	Creator         string         `bigquery:"creator"`
+	Assignee        string         `bigquery:"assignee"`
+	Status          Status         `bigquery:"status"`
+	Priority        Priority       `bigquery:"priority"`
+	Labels          []string       `bigquery:"labels"`
+	TargetVersions  []Version      `bigquery:"target_versions"`
+	Resolution      Resolution     `bigquery:"resolution"`
+	Comments        []Comment      `bigquery:"comments"`
+	Summary         string         `bigquery:"summary"`
+	Components      []Component    `bigquery:"components"`
+	FixVersions     []Version      `bigquery:"fix_versions"`
+	AffectsVersions []Version      `bigquery:"affects_versions"`
+	LastChangedTime time.Time      `bigquery:"last_changed_time"`
+	CustomFields    []CustomField  `bigquery:"custom_fields"`
+	ReleaseBlocker  ReleaseBlocker `bigquery:"release_blocker"`
 }
 
 func (t *Ticket) Save() (map[string]bigquery.Value, string, error) {
@@ -107,6 +113,7 @@ func (t *Ticket) Save() (map[string]bigquery.Value, string, error) {
 		"affects_versions":  t.AffectsVersions,
 		"last_changed_time": t.LastChangedTime,
 		"custom_fields":     t.CustomFields,
+		"release_blocker":   t.ReleaseBlocker,
 	}, bigquery.NoDedupeID, nil
 }
 
@@ -132,6 +139,7 @@ func convertToTicket(issueComments *jira.IssueComments, timestamp time.Time) *Ti
 		AffectsVersions: getAffectsVersions(issueComments.Info.Fields.AffectsVersions),
 		LastChangedTime: getUpdatedTime(issueComments.Info.Fields.Updated),
 		CustomFields:    getCustomFields(issueComments.Info),
+		ReleaseBlocker:  getReleaseBlocker(issueComments.Info),
 	}
 }
 
@@ -339,4 +347,15 @@ func generateBigQueryJson(src interface{}) string {
 		return ""
 	}
 	return string(data)
+}
+
+func getReleaseBlocker(i jiraBaseClient.Issue) ReleaseBlocker {
+	rb, err := helpers.GetReleaseBlocker(&i)
+	if err != nil {
+		return ReleaseBlocker{}
+	}
+	return ReleaseBlocker{
+		ID:    rb.ID,
+		Value: rb.Value,
+	}
 }
